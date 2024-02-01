@@ -87,6 +87,30 @@ impl MasterKey2 {
         )
     }
 
+    pub fn recover_master_key(
+        recovered_secret: FE,
+        party_two_public: Party2Public,
+        chain_code: BigInt,
+    ) -> MasterKey2 {
+        //  master key of party two from party two secret recovery:
+        // q1 (public key of party one), chain code, and public paillier data (c_key, ek) are needed for
+        // recovery of party two master key. paillier data can be refreshed but q1 and cc must be the same
+        // as before. Therefore there are two options:
+        // (1) party 2 kept the public data of the master key and can retrieve it (only private key was lost)
+        // (2) party 2 lost the public data as well. in this case only party 1 can help with the public data.
+        //     if party 1 becomes malicious it means two failures at the same time from which the system will not be able to recover.
+        //     Therefore no point of running any secure protocol with party 1 and just accept the public data as is.
+
+        let (_, ec_key_pair_party2) =
+            party_two::KeyGenFirstMsg::create_with_fixed_secret_share(recovered_secret);
+        let party2_private = party_two::Party2Private::set_private_key(&ec_key_pair_party2);
+        MasterKey2 {
+            public: party_two_public,
+            private: party2_private,
+            chain_code,
+        }
+    }
+
     pub fn key_gen_first_message() -> (party_two::KeyGenFirstMsg, party_two::EcKeyPair) {
         party_two::KeyGenFirstMsg::create()
     }
